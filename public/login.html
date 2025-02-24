@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0 , user-scalable=no">
+  <title>Login - Chat App</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Roboto', sans-serif;
+      background-color: #e0f7fa;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .login-container {
+      background-color: #ffffff;
+      padding: 40px;
+      border-radius: 16px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 380px;
+      text-align: center;
+    }
+
+    h2 {
+      font-size: 28px;
+      color: #00796b;
+      margin-bottom: 30px;
+    }
+
+    .input-group {
+      margin-bottom: 20px;
+    }
+
+    .input-group input {
+      width: 100%;
+      padding: 14px;
+      font-size: 16px;
+      border: 2px solid #00796b;
+      border-radius: 8px;
+      outline: none;
+      transition: border 0.3s ease;
+    }
+
+    .input-group input:focus {
+      border-color: #004d40;
+    }
+
+    .login-btn {
+      width: 100%;
+      padding: 14px;
+      font-size: 16px;
+      background-color: #00796b;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    .login-btn:hover {
+      background-color: #004d40;
+    }
+
+    .error-message {
+      color: red;
+      font-size: 14px;
+      margin-top: 10px;
+      display: none;
+    }
+
+    p {
+      font-size: 14px;
+      margin-top: 20px;
+    }
+
+    a {
+      color: #00796b;
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .footer {
+      margin-top: 20px;
+      font-size: 12px;
+      color: #00796b;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <h2>Welcome Back!</h2>
+    <form id="login-form">
+      <div class="input-group">
+        <input type="text" id="username" name="username" placeholder="Enter Username" required />
+      </div>
+      <div class="input-group">
+        <input type="password" id="password" name="password" placeholder="Enter Password" required />
+      </div>
+      <button type="submit" class="login-btn">Login</button>
+      <p class="error-message" id="error-message"></p>
+    </form>
+    <p>Don't have an account? <a href="/register">Sign up</a></p>
+    <div class="footer">
+      <p>&copy; 2025 UI App. All rights reserved.</p>
+    </div>
+  </div>
+
+<script>
+  document.getElementById('login-form').addEventListener('submit', function(event) {
+    event.preventDefault();
+
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+
+    fetch('http://localhost:3000/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.message === 'Login successful') {
+        window.location.href = '/secure/chat/api';
+      } else {
+        const errorMessage = document.getElementById('error-message');
+        errorMessage.textContent = 'Invalid username or password';
+        errorMessage.style.display = 'block';
+      }
+    })
+    .catch(error => {
+      const errorMessage = document.getElementById('error-message');
+      errorMessage.textContent = 'Something went wrong. Please try again.';
+      errorMessage.style.display = 'block';
+    });
+  });
+</script>
+</body>
+</html>
