@@ -32,7 +32,7 @@ app.use(sessionMiddleware);
 // Socket.IO setup
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000",
+    origin: "https://jp-mzlm.onrender.com/",
     methods: ["GET", "POST"],
     credentials: true
   }
