@@ -23,9 +23,9 @@
         .chat-container {
             width: 92%;
             max-width: 600px;
-            margin: px auto;
+            margin: auto;
             background: white;
-            padding:18px;
+            padding: 18px;
             border-radius: 8px;
             box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
             display: flex;
@@ -40,13 +40,18 @@
             display: flex;
             flex-direction: column;
         }
+        .message-container {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 10px;
+        }
         .message {
             padding: 10px;
-            margin: 5px 0;
             border-radius: 8px;
             max-width: 70%;
             word-wrap: break-word;
             white-space: pre-wrap;
+            position: relative;
         }
         .sent {
             background: #0084ff;
@@ -63,6 +68,16 @@
             color: gray;
             font-size: 12px;
             text-align: center;
+            font-weight:;
+            width: 100%;
+        }
+        .user-id {
+            font-size: 10px;
+            color: gray;
+            display: block;
+            text-align: right;
+            margin-bottom: 2px;
+            font-weight: bold;
         }
         .input-box {
             display: flex;
@@ -101,28 +116,82 @@
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
-        let myUserId = Math.random().toString(36).substring(2, 15); // Generate unique ID
+        let mySocketId = "";  
+        let myUserId = "";  
 
-        // Receive messages (from the server)
-        socket.on("message", (data) => {
-            const newMessage = document.createElement("div");
-
-            if (data.userId === "system") {
-                newMessage.classList.add("system");
-                newMessage.textContent = data.message;
-            } else if (data.userId !== myUserId) {
-                newMessage.classList.add("message", "received");
-                newMessage.textContent = data.message;
-            } else {
-                newMessage.classList.add("message", "sent");
-                newMessage.textContent = data.message;
-            }
-
-            chatBox.appendChild(newMessage);
-            chatBox.scrollTop = chatBox.scrollHeight;
+        socket.on("connect", () => {
+            mySocketId = socket.id;
+            myUserId = mySocketId.slice(-4);
+            socket.emit("user-connected", { userId: myUserId });
         });
 
-        // Send messages (Only emit to the server)
+        function showSystemMessage(message) {
+            const newMessage = document.createElement("div");
+            newMessage.classList.add("system");
+            newMessage.textContent = message;
+            chatBox.appendChild(newMessage);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        socket.on("message", (data) => {
+    const messageContainer = document.createElement("div");
+    messageContainer.classList.add("message-container");
+
+    if (data.userId === "system") {
+        showSystemMessage(data.message);
+        return;
+    }
+
+    const userIdSpan = document.createElement("span");
+    userIdSpan.classList.add("user-id");
+
+    // User ID text
+    if (data.userId !== myUserId) {
+        userIdSpan.textContent = `User: ${data.userId}`;
+        userIdSpan.style.textAlign = "left"; // Received message er jonno left align
+    } else {
+        userIdSpan.textContent = `You:${data.userId}`;
+        userIdSpan.style.textAlign = "right"; // Sent message er jonno right align
+    }
+
+    const newMessage = document.createElement("div");
+    newMessage.classList.add("message");
+
+    if (data.userId !== myUserId) {
+        newMessage.classList.add("received");
+    } else {
+        newMessage.classList.add("sent");
+    }
+
+    // **User ID ke message er upore show korbo**
+    messageContainer.appendChild(userIdSpan);
+    messageContainer.appendChild(newMessage);
+    
+    newMessage.textContent = data.message;
+
+    chatBox.appendChild(messageContainer);
+    chatBox.scrollTop = chatBox.scrollHeight;
+});
+
+
+// ✅ Fix: Ensure system messages (like "User connected") appear at center
+socket.on("user-connected", (data) => {
+    showSystemMessage(`User ${data.userId} connected`);
+});
+
+function showSystemMessage(message) {
+    const newMessage = document.createElement("div");
+    newMessage.classList.add("system");
+    newMessage.textContent = message;
+    chatBox.appendChild(newMessage);
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+
+        socket.on("user-connected", (data) => {
+            showSystemMessage(`User ${data.userId} connected`);
+        });
+
         sendBtn.addEventListener("click", () => {
             const message = chatInput.value.trim();
             if (message) {
