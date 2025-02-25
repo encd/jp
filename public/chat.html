@@ -6,20 +6,62 @@
     <title>P2P Chat</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+
+        /* Basic Styles */
         body {
             font-family: 'Roboto', Arial, sans-serif;
             margin: 0;
             padding: 0;
             background-color: #f5f5f5;
         }
+
         .header {
             background-color: #00c4a7;
             color: white;
             padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-title {
             font-size: 20px;
             font-weight: bold;
-            text-align: center;
         }
+
+        .active-users {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.1);
+            padding: 5px 10px;
+            border-radius: 15px;
+            max-width: 60%;
+            overflow-x: auto;
+        }
+
+        .user-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        .user-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #00ff88;
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(0.95); }
+        }
+
         .chat-container {
             width: 92%;
             max-width: 600px;
@@ -32,6 +74,8 @@
             flex-direction: column;
             height: 80vh;
         }
+
+        /* Chat Box */
         .chat-box {
             flex: 1;
             overflow-y: auto;
@@ -40,11 +84,15 @@
             display: flex;
             flex-direction: column;
         }
+
+        /* Message Container */
         .message-container {
             display: flex;
             flex-direction: column;
             margin-bottom: 10px;
         }
+
+        /* Message Bubble */
         .message {
             padding: 10px;
             border-radius: 8px;
@@ -53,45 +101,70 @@
             white-space: pre-wrap;
             position: relative;
         }
+
+        /* Sent Message */
         .sent {
             background: #0084ff;
             color: white;
             align-self: flex-end;
-            text-align: left;
         }
+
+        /* Received Message */
         .received {
             background: #e5e5e5;
+            color: black;
             align-self: flex-start;
-            text-align: left;
         }
+
+        /* System Message */
         .system {
             color: gray;
-            font-size: 12px;
+            font-size: 14px;
             text-align: center;
-            font-weight:;
             width: 100%;
+            margin: 10px 0;
+            background: none;
+            padding: 0;
+            border: none;
         }
+
+        /* User ID Styles */
         .user-id {
             font-size: 10px;
             color: gray;
-            display: block;
-            text-align: right;
-            margin-bottom: 2px;
-            font-weight: bold;
+            margin-top: 5px;
         }
+
+        /* Alignment for User IDs */
+        .align-left {
+            text-align: left;
+            align-self: flex-start;
+        }
+
+        .align-right {
+            text-align: right;
+            align-self: flex-end;
+        }
+
+        /* Input Box */
         .input-box {
             display: flex;
             padding: px;
             background: #f0f0f0;
         }
+
+        /* Text Area */
         .input-box textarea {
             flex: 1;
-            padding: 10px;
+            padding:12px;
+            
             border: 1px solid #ccc;
             border-radius: 5px;
             outline: none;
             resize: none;
         }
+
+        /* Send Button */
         .input-box button {
             margin-left: 10px;
             padding: 10px;
@@ -104,7 +177,17 @@
     </style>
 </head>
 <body>
-    <div class="header">otr.to Chat</div>
+
+ <div class="header">
+        <div class="active-users" id="activeUsers">
+            <span class="user-item">
+                <span class="user-dot"></span>
+            </span>
+        </div>
+        <div class="header-title">otr.to Chat</div>
+    </div>
+
+    <!-- Chat Container -->
     <div class="chat-container">
         <div class="chat-box" id="chatBox"></div>
         <div class="input-box">
@@ -113,18 +196,51 @@
         </div>
     </div>
 
+    <!-- Socket.IO and Script -->
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        const socket = io();
-        let mySocketId = "";  
-        let myUserId = "";  
+        const socket = io({ withCredentials: true });
+        let username = "";
 
-        socket.on("connect", () => {
-            mySocketId = socket.id;
-            myUserId = mySocketId.slice(-4);
-            socket.emit("user-connected", { userId: myUserId });
-        });
+        // Fetch username from the server
+        fetch("/get-username")
+            .then(response => response.json())
+            .then(data => {
+                if (data.username) {
+                    username = data.username;
+                    socket.emit("user-connected", { username });
+                } else {
+                    alert("Session expired. Please log in again.");
+                    window.location.href = "/";
+                }
+            });
+            
+         // Active users handler
+        socket.on("active-users", (users) => {
+            const activeUsersContainer = document.getElementById("activeUsers");
+            activeUsersContainer.innerHTML = "";
 
+            users.forEach(user => {
+                const userElement = document.createElement("span");
+                userElement.className = "user-item";
+                userElement.innerHTML = `
+                    <span class="user-dot"></span>
+                    <span>${user}</span>
+                `;
+                activeUsersContainer.appendChild(userElement);
+            });
+
+            if (users.length === 0) {
+                activeUsersContainer.innerHTML = `
+                    <span class="user-item">
+                        <span class="user-dot"></span>
+                        <span>No active users</span>
+                    </span>
+                `;
+            }
+        });    
+
+        // Function to show system messages
         function showSystemMessage(message) {
             const newMessage = document.createElement("div");
             newMessage.classList.add("system");
@@ -133,72 +249,69 @@
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
-        socket.on("message", (data) => {
-    const messageContainer = document.createElement("div");
-    messageContainer.classList.add("message-container");
-
-    if (data.userId === "system") {
-        showSystemMessage(data.message);
-        return;
-    }
-
-    const userIdSpan = document.createElement("span");
-    userIdSpan.classList.add("user-id");
-
-    // User ID text
-    if (data.userId !== myUserId) {
-        userIdSpan.textContent = `User: ${data.userId}`;
-        userIdSpan.style.textAlign = "left"; // Received message er jonno left align
-    } else {
-        userIdSpan.textContent = `You:${data.userId}`;
-        userIdSpan.style.textAlign = "right"; // Sent message er jonno right align
-    }
-
-    const newMessage = document.createElement("div");
-    newMessage.classList.add("message");
-
-    if (data.userId !== myUserId) {
-        newMessage.classList.add("received");
-    } else {
-        newMessage.classList.add("sent");
-    }
-
-    // **User ID ke message er upore show korbo**
-    messageContainer.appendChild(userIdSpan);
-    messageContainer.appendChild(newMessage);
-    
-    newMessage.textContent = data.message;
-
-    chatBox.appendChild(messageContainer);
-    chatBox.scrollTop = chatBox.scrollHeight;
-});
-
-
-// ✅ Fix: Ensure system messages (like "User connected") appear at center
-socket.on("user-connected", (data) => {
-    showSystemMessage(`User ${data.userId} connected`);
-});
-
-function showSystemMessage(message) {
-    const newMessage = document.createElement("div");
-    newMessage.classList.add("system");
-    newMessage.textContent = message;
-    chatBox.appendChild(newMessage);
-    chatBox.scrollTop = chatBox.scrollHeight;
-}
-
-
+        // Handle user connection
         socket.on("user-connected", (data) => {
-            showSystemMessage(`User ${data.userId} connected`);
+            if (data.userId) {
+                if (data.userId === username) {
+                    showSystemMessage(`Welcome, ${data.userId}!`);
+                } else {
+                    showSystemMessage(`${data.userId} Joined the Room`);
+                }
+            } else {
+                showSystemMessage("⚠️ Unknown user connected");
+            }
         });
 
+        // Handle user disconnection
+        socket.on("user-disconnected", (data) => {
+            if (data.userId) {
+                showSystemMessage(`${data.userId} left the Room `);
+            } else {
+                showSystemMessage("⚠️ Unknown user disconnected");
+            }
+        });
+
+        // Display chat messages
+        socket.on("message", (data) => {
+            const messageContainer = document.createElement("div");
+            messageContainer.classList.add("message-container");
+
+            if (data.userId === "system") {
+                showSystemMessage(data.message);
+                return;
+            }
+
+            const newMessage = document.createElement("div");
+            newMessage.classList.add("message", data.userId !== username ? "received" : "sent");
+            newMessage.textContent = data.message;
+
+            const userIdSpan = document.createElement("span");
+            userIdSpan.classList.add("user-id");
+
+            if (data.userId !== username) {
+                userIdSpan.textContent = `${data.userId}`;
+                userIdSpan.classList.add("align-left");
+            } else {
+                userIdSpan.textContent = `You`;
+                userIdSpan.classList.add("align-right");
+            }
+
+            messageContainer.appendChild(newMessage);
+            messageContainer.appendChild(userIdSpan);
+
+            chatBox.appendChild(messageContainer);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        });
+
+        // Send message
         sendBtn.addEventListener("click", () => {
             const message = chatInput.value.trim();
             if (message) {
-                socket.emit("user-message", { message, userId: myUserId });
+                socket.emit("user-message", { message, userId: username });
                 chatInput.value = "";
             }
         });
     </script>
+
 </body>
 </html>
