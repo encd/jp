@@ -2,13 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0 , user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0 ">
   <title>Login - Chat App</title>
   <style>
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
+      overscroll-behavior: ;
     }
 
     body {
@@ -16,10 +17,13 @@
       background-color: #e0f7fa;
       display: flex;
       justify-content: center;
+      overscroll-behavior: auto;
       align-items: center;
-      height: 100vh;
+      height:100vh;
       overflow: hidden;
-    }
+      overflow-y: auto;
+    } 
+  
 
     .login-container {
       background-color: #ffffff;
@@ -122,9 +126,24 @@
   document.getElementById('login-form').addEventListener('submit', function(event) {
     event.preventDefault();
 
-    const username = document.getElementById('username').value;
+    const username = document.getElementById('username').value.trim();
     const password = document.getElementById('password').value;
+    const errorMessage = document.getElementById('error-message');
 
+    // Validate username length
+    if (username.length > 11) {
+      errorMessage.textContent = 'Username must be less than 12 characters';
+      errorMessage.style.display = 'block';
+
+      // Hide error after 3 seconds
+      setTimeout(() => {
+        errorMessage.style.display = 'none';
+      }, 3000);
+      
+      return;
+    }
+    
+    // Proceed with login request
     fetch('https://jp-mzlm.onrender.com/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -135,17 +154,26 @@
       if (data.message === 'Login successful') {
         window.location.href = '/secure/chat/api';
       } else {
-        const errorMessage = document.getElementById('error-message');
         errorMessage.textContent = 'Invalid username or password';
         errorMessage.style.display = 'block';
+
+        // Hide error after 3 seconds
+        setTimeout(() => {
+          errorMessage.style.display = 'none';
+        }, 3000);
       }
     })
     .catch(error => {
-      const errorMessage = document.getElementById('error-message');
       errorMessage.textContent = 'Something went wrong. Please try again.';
       errorMessage.style.display = 'block';
+
+      // Hide error after 3 seconds
+      setTimeout(() => {
+        errorMessage.style.display = 'none';
+      }, 3000);
     });
   });
 </script>
+
 </body>
 </html>
