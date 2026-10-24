@@ -1,120 +1,45 @@
-const express = require('express');
-const session = require('express-session');
-const cookieParser = require('cookie-parser');
-const path = require('path');
-const http = require('http');
-const { Server } = require('socket.io');
-const sharedSession = require('express-socket.io-session');
+const { Client, LocalAuth } = require('whatsapp-web.js');
+const qrcode = require('qrcode-terminal');
 
-const app = express();
-const server = http.createServer(app);
-const port = process.env.PORT || 3000;
-
-// Middleware
-app.use(cookieParser());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, 'public')));
-
-// Session config
-const sessionMiddleware = session({
-  secret: 'your_secret_key2eesee',
-  resave: false,
-  saveUninitialized: false,
-  cookie: { 
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
-  }
-});
-app.use(sessionMiddleware);
-
-// Socket.IO setup
-const io = new Server(server, {
-  cors: {
-    origin: "https://jp-mzlm.onrender.com/",
-    methods: ["GET", "POST"],
-    credentials: true
-  }
-});
-io.use(sharedSession(sessionMiddleware, { autoSave: true }));
-
-// User storage
-const users = {};
-
-// Auth middleware
-function isAuthenticated(req, res, next) {
-  if (req.session.user) return next();
-  res.status(401).redirect('/');
-}
-
-// Routes
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'login.html'));
+const client = new Client({
+    authStrategy: new LocalAuth(),
+    puppeteer: {
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
+    }
 });
 
-app.get('/register', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'error.html'));
+client.on('qr', (qr) => {
+    // এই কিউআর কোডটি রেন্ডারের কালো স্ক্রিনে (Logs) দেখা যাবে
+    qrcode.generate(qr, { small: true });
+    console.log('👉 আপনার হোয়াটসঅ্যাপ দিয়ে এই QR কোডটি স্ক্যান করুন:');
 });
 
-app.post('/', (req, res) => {
-  const { username, password } = req.body;
-  if (username && password && password === 'password9900p') {
-    req.session.user = { username };
-    return res.json({ message: 'Login successful', redirect: '/secure/chat/api' });
-  }
-  res.status(401).json({ message: 'Invalid credentials' });
+client.on('ready', () => {
+    console.log('মাস্টারমাইন্ড টিউশন মিডিয়া বট সফলভাবে চালু হয়েছে! 🚀');
 });
 
-app.get('/secure/chat/api', isAuthenticated, (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'chat.html'));
+client.on('message', async (message) => {
+    // গ্রুপ মেসেজ বাদ দিয়ে শুধু পার্সোনাল চ্যাটে কাজ করবে
+    if (message.from.includes('@g.us')) return;
+
+    // মেসেজ ১: স্বাগতম বার্তা ও লিংকসমূহ
+    const msg1 = `মাস্টারমাইন্ড টিউশন মিডিয়া Mastermind Tuition Media\n\nমাস্টারমাইন্ড টিউশন মিডিয়ায় যোগাযোগ করার জন্য আপনাকে অসংখ্য ধন্যবাদ! 🌟\n\n🎓 অভিভাবকদের জন্য:\nআপনার সন্তানের উজ্জ্বল ভবিষ্যতের লক্ষ্যে যেকোনো সময় নিজের পছন্দমতো দক্ষ, অভিজ্ঞ ও দায়িত্বশীল টিউটর খুঁজে পেতে আমাদের সাথেই থাকুন। \n\n📌 আমাদের অফিশিয়াল ফেসবুক পেজ: \nhttps://facebook.com\n\n💼 টিউটরদের জন্য:\nআপনার যোগ্যতা, মেধা ও পছন্দ অনুযায়ী সেরা টিউশনটি লুফে নিতে আজই আমাদের সাথে যুক্ত থাকুন। \n\n📲 হোয়াটসঅ্যাপ গ্রুপ: \nhttps://whatsapp.com\n\n📌 ফেসবুক পেজ: \nhttps://facebook.com\n\n👥 ফেসবুক গ্রুপ: \nhttps://facebook.com\n\nআপনার প্রতিটি প্রয়োজনেই আমরা আছি আপনার পাশে! ✨`;
+
+    // মেসেজ ২: সিভি ফরম্যাট
+    const msg2 = `*টিউশন করাতে চাইলে কপি করে ছিভি পূরণ করে দেন👇*\n\n🎓 𝗧𝗨𝗧𝗢𝗥 𝗕𝗜𝗢𝗗𝗔𝗧𝗔 / 𝗖𝗩 🎓\n\n👤 𝗣𝗲𝗿𝘀𝗼𝗻𝗮𝗹 𝗜𝗻𝗳𝗼𝗿𝗺𝗮𝘁𝗶𝗼𝗻\n📛 𝗡𝗮𝗺𝗲: \n📱 𝗣𝗵𝗼𝗻𝗲 𝗡𝘂𝗺𝗯𝗲𝗿: \n👥 𝗙𝗿𝗶𝗲𝗻𝗱'𝘀 𝗡𝘂𝗺𝗯𝗲𝗿: \n👨‍👩‍👦 𝗚𝘂𝗮𝗿𝗱𝗶𝗮𝗻'𝘀 𝗡𝘂𝗺𝗯𝗲𝗿: \n🌐 𝗙𝗮𝗰𝗲𝗯𝗼𝗼𝗸 𝗜𝗗 𝗟𝗶𝗻𝗸: \n\n🏫 𝗔𝗰𝗮𝗱𝗲𝗺𝗶𝗰 𝗤𝘂𝗮𝗹𝗶𝗳𝗶𝗰𝗮𝘁𝗶𝗼𝗻\n🎒 𝗦𝗰𝗵𝗼𝗼𝗹: \n📌 𝗚𝗿𝗼𝘂𝗽: \n🗣️ 𝗠𝗲𝗱𝗶𝘂𝗺: \n\n🏛️ 𝗖𝗼𝗹𝗹𝗲𝗴𝗲: \n📌 𝗚𝗿𝗼𝘂𝗽: \n🗣️ 𝗠𝗲𝗱𝗶𝘂𝗺: \n\n🎓 𝗨𝗻𝗶𝘃𝗲𝗿𝘀𝗶𝘁𝘆: \n📚 𝗗𝗲𝗽𝗮𝗿𝘁𝗺𝗲𝗻𝘁: \n🗓️ 𝗬𝗲𝗮𝗿/𝗦𝗲𝗺𝗲𝘀𝘁𝗲𝗿: \n\n💼 𝗘𝘅𝗽𝗲𝗿𝗶𝗲𝗻𝗰𝗲 & 𝗔𝗱𝗱𝗿𝗲𝘀𝘀\n✍️ 𝗧𝘂𝗶𝘁𝗶𝗼𝗻 𝗘𝘅𝗽𝗲𝗿𝗶𝗲𝗻𝗰𝗲: \n📍 𝗣𝗿𝗲𝘀𝗲𝗻𝘁 𝗔𝗱𝗱𝗿𝗲𝘀𝘀: \n🏡 𝗣𝗲𝗿𝗺𝗮𝗻𝗲𝗻𝘁 𝗔𝗱𝗱𝗿𝗲𝘀𝘀: \n\n📎 𝗔𝘁𝘁𝗮𝗰𝗵ﻤ𝗲𝗻𝘁𝘀\n🪪 𝗦𝘁𝘂𝗱𝗲𝗻𝘁 𝗜𝗗 𝗣𝗵𝗼𝘁𝗼\n🆔 𝗕𝗶𝗿𝘁𝗵 𝗖𝗮𝗿𝗱 / 𝗡𝗜𝗗 𝗣𝗵𝗼𝘁𝗼\n\n𝗠𝗮𝘀𝘁𝗲𝗿𝗺𝗶𝗻𝗱 𝗧𝘂𝗶𝘁𝗶𝗼𝗻 𝗠𝗲𝗱𝗶𝗮\n*মাস্টারমাইন্ড টিউশন মিডিয়া*\n*ধন্যবাদ*`;
+
+    try {
+        // প্রথম মেসেজ পাঠানো
+        await client.sendMessage(message.from, msg1);
+        
+        // ২ সেকেন্ড বিরতি দিয়ে দ্বিতীয় মেসেজ পাঠানো (যাতে হোয়াটসঅ্যাপ স্প্যাম মনে না করে)
+        setTimeout(async () => {
+            await client.sendMessage(message.from, msg2);
+        }, 2000);
+
+    } catch (error) {
+        console.error("মেসেজ পাঠাতে সমস্যা হয়েছে:", error);
+    }
 });
 
-app.get('/get-username', (req, res) => {
-  req.session.user 
-    ? res.json({ username: req.session.user.username })
-    : res.status(401).json({ message: "Unauthorized" });
-});
-
-// Socket.IO handlers
-io.on("connection", (socket) => {
-  if (!socket.handshake.session?.user) {
-    socket.emit("message", { userId: "system", message: "⚠️ Please log in." });
-    return socket.disconnect();
-  }
-
-  const username = socket.handshake.session.user.username;
-
-  if (Object.values(users).includes(username)) {
-    socket.emit("message", { userId: "system", message: "⚠️ Username already in use." });
-    return socket.disconnect();
-  }
-
-  if (Object.keys(users).length >= 2 ) {
-    socket.emit("message", { userId: "system", message: "⚠️ Room is full. Only 2 users allowed." });
-    socket.disconnect();
-    return;
-  }
-
-  users[socket.id] = username;
-  io.emit('active-users', Object.values(users)); // New active users update
-
-  socket.emit("message", { userId: "system", message: `Welcome, ${username}!` });
-  socket.broadcast.emit("user-connected", { userId: username });
-
-  socket.on("user-message", (data) => {
-    io.emit("message", { message: data.message, userId: username });
-  });
-
-  socket.on("disconnect", () => {
-    delete users[socket.id];
-    io.emit('active-users', Object.values(users)); // New active users update
-    socket.broadcast.emit("user-disconnected", { userId: username });
-  });
-});
-
-app.use((req, res) => {
-  res.status(404).sendFile(path.join(__dirname, 'public', '404.html'));
-});
-
-server.listen(port, () => console.log(`🚀 Server running at http://localhost:${port}`));
+client.initialize();
