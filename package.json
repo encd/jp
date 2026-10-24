@@ -4,6 +4,7 @@
   "description": "WhatsApp Automation for Mastermind Tuition Media",
   "main": "index.js",
   "scripts": {
+    "postinstall": "npx puppeteer browsers install chrome",
     "start": "node index.js"
   },
   "dependencies": {
